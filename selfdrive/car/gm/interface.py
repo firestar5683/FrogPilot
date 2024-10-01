@@ -27,8 +27,8 @@ CAM_MSG = 0x320  # AEBCmd
 ACCELERATOR_POS_MSG = 0xbe
 
 NON_LINEAR_TORQUE_PARAMS = {
-  CAR.CHEVROLET_BOLT_EUV: [2.6531724862969748, 1.0, 0.1919764879840985, 0.009054123646805178],
-  CAR.CHEVROLET_BOLT_CC: [2.6531724862969748, 1.0, 0.1919764879840985, 0.009054123646805178],
+  CAR.CHEVROLET_BOLT_EUV: [2.2, 0.81, 0.19, -0.07],
+  CAR.CHEVROLET_BOLT_CC: [2.2, 0.81, 0.19, -0.07],
   CAR.GMC_ACADIA: [4.78003305, 1.0, 0.3122, 0.05591772],
   CAR.CHEVROLET_SILVERADO: [3.29974374, 1.0, 0.25571356, 0.0465122]
 }
@@ -72,8 +72,8 @@ class CarInterface(CarInterfaceBase):
     # ToDo: To generalize to other GMs, explore tanh function as the nonlinear
     non_linear_torque_params = NON_LINEAR_TORQUE_PARAMS.get(self.CP.carFingerprint)
     assert non_linear_torque_params, "The params are not defined"
-    a, b, c, _ = non_linear_torque_params
-    steer_torque = (sig(latcontrol_inputs.lateral_acceleration * a) * b) + (latcontrol_inputs.lateral_acceleration * c)
+    a, b, c, d = non_linear_torque_params
+    steer_torque = (sig(latcontrol_inputs.lateral_acceleration * a) * b) + (latcontrol_inputs.lateral_acceleration * c) + d
     return float(steer_torque) + friction
 
   def torque_from_lateral_accel_neural(self, latcontrol_inputs: LatControlInputs, torque_params: car.CarParams.LateralTorqueTuning, lateral_accel_error: float,
@@ -85,13 +85,7 @@ class CarInterface(CarInterfaceBase):
     return float(self.neural_ff_model.predict(inputs)) + friction
 
   def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
-    if self.CP.carFingerprint in (CAR.CHEVROLET_BOLT_EUV, CAR.CHEVROLET_BOLT_CC):
-      self.neural_ff_model = NanoFFModel(NEURAL_PARAMS_PATH, self.CP.carFingerprint)
-      return self.torque_from_lateral_accel_neural
-    elif self.CP.carFingerprint in NON_LINEAR_TORQUE_PARAMS:
       return self.torque_from_lateral_accel_siglin
-    else:
-      return self.torque_from_lateral_accel_linear
 
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, disable_openpilot_long, experimental_long, docs, params):
@@ -227,6 +221,7 @@ class CarInterface(CarInterfaceBase):
     elif candidate in (CAR.CHEVROLET_BOLT_EUV, CAR.CHEVROLET_BOLT_CC):
       ret.steerActuatorDelay = 0.2
       CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
+      ret.lateralTuning.torque.kp = 0.6
 
       if ret.enableGasInterceptor:
         # ACC Bolts use pedal for full longitudinal control, not just sng
