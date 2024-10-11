@@ -48,7 +48,7 @@ def allow_logging(started, params, CP: car.CarParams) -> bool:
 
 def allow_uploads(started, params, CP: car.CarParams) -> bool:
   allow_uploads = not (params.get_bool("DeviceManagement") and params.get_bool("NoUploads") and not params.get_bool("DisableOnroadUploads"))
-  return allow_uploads
+  return False
 
 def run_classic_modeld(started, params, CP: car.CarParams) -> bool:
   return started and params.get("Model", encoding='utf-8') != "secret-good-openpilot"
