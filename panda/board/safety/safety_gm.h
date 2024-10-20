@@ -3,7 +3,7 @@ const SteeringLimits GM_STEERING_LIMITS = {
   .max_rate_up = 15,
   .max_rate_down = 22.5,
   .driver_torque_allowance = 97.5,
-  .driver_torque_factor = 3,
+  .driver_torque_factor = 2,
   .max_rt_delta = 192,
   .max_rt_interval = 250000,
   .type = TorqueDriverLimited,
@@ -229,7 +229,7 @@ static bool gm_tx_hook(const CANPacket_t *to_send) {
     bool steer_req = GET_BIT(to_send, 3U);
 
     if (steer_torque_cmd_checks(desired_torque, steer_req, GM_STEERING_LIMITS)) {
-      tx = false;
+      tx = true;
     }
   }
 
